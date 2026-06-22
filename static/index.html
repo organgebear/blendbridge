@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlendBridge - Blender FBX 纹理修复工具</title>
+  <!-- Element Plus -->
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+  <!-- Element Plus Icons -->
+  <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 顶部导航 -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <span class="brand-icon">🌉</span>
+          <span class="brand-name">BlendBridge</span>
+          <el-tag size="small" type="info" effect="plain" round>v1.0</el-tag>
+        </div>
+        <div class="header-desc">一键修复 Blender FBX 导出纹理丢失问题</div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="main-card">
+        <!-- 步骤指示器 -->
+        <el-steps :active="currentStep" align-center finish-status="success">
+          <el-step title="上传" description="上传 .blend 文件" />
+          <el-step title="诊断" description="检查纹理 & 材质" />
+          <el-step title="修复" description="转换 & 导出" />
+          <el-step title="下载" description="获取结果" />
+        </el-steps>
+
+        <!-- Step 0: 上传区域 -->
+        <div v-show="currentStep === 0" class="step-content">
+          <el-upload
+            ref="uploadRef"
+            class="upload-zone"
+            drag
+            :auto-upload="false"
+            :limit="1"
+            accept=".blend"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+          >
+            <el-icon class="upload-icon"><upload-filled /></el-icon>
+            <div class="upload-text">
+              <strong>拖拽 .blend 文件到此处</strong>
+              <p>或点击选择文件（仅支持 .blend 格式）</p>
+            </div>
+          </el-upload>
+          <div class="action-bar">
+            <el-button
+              type="primary"
+              size="large"
+              :disabled="!uploadFile"
+              :loading="fixing"
+              @click="startFix"
+            >
+              {{ fixing ? '修复中...' : '🚀 开始修复' }}
+            </el-button>
+            <el-button size="large" :disabled="!uploadFile" @click="resetAll">
+              重置
+            </el-button>
+          </div>
+        </div>
+
+        <!-- Step 1: 诊断中 -->
+        <div v-show="currentStep === 1" class="step-content">
+          <div class="status-center">
+            <el-icon class="spin-icon" :size="40"><loading /></el-icon>
+            <h3>正在诊断模型...</h3>
+            <p>检查纹理打包状态 & 材质类型</p>
+          </div>
+        </div>
+
+        <!-- Step 2: 修复结果 -->
+        <div v-show="currentStep === 2" class="step-content">
+          <div class="result-summary">
+            <!-- 成功 -->
+            <template v-if="taskResult.status === 'success'">
+              <el-result icon="success" title="修复完成！" sub-title="纹理已解包，材质已转换为 PBR">
+                <template #extra>
+                  <div class="stats-grid">
+                    <el-statistic title="解包纹理" :value="taskResult.unpacked_textures?.length || 0">
+                      <template #suffix>张</template>
+                    </el-statistic>
+                    <el-statistic title="转换材质" :value="taskResult.converted_materials?.length || 0">
+                      <template #suffix>个</template>
+                    </el-statistic>
+                    <el-statistic title="FBX 大小" :value="formatSize(taskResult.export?.fbx_size || 0)" />
+                  </div>
+                </template>
+              </el-result>
+
+              <!-- 详情 -->
+              <el-collapse v-if="taskResult.unpacked_textures?.length">
+                <el-collapse-item title="解包纹理详情" name="textures">
+                  <div class="detail-list">
+                    <el-tag
+                      v-for="tex in taskResult.unpacked_textures"
+                      :key="tex.name"
+                      type="success"
+                      effect="plain"
+                      style="margin: 4px"
+                    >
+                      🖼️ {{ tex.name }} ({{ tex.size[0] }}×{{ tex.size[1] }})
+                    </el-tag>
+                  </div>
+                </el-collapse-item>
+                <el-collapse-item title="转换材质详情" name="materials">
+                  <div class="detail-list">
+                    <el-tag
+                      v-for="mat in taskResult.converted_materials"
+                      :key="mat"
+                      type="warning"
+                      effect="plain"
+                      style="margin: 4px"
+                    >
+                      ⚡→🎨 {{ mat }}
+                    </el-tag>
+                  </div>
+                  <div v-if="taskResult.skipped_materials?.length" style="margin-top: 8px; color: #909399">
+                    跳过 {{ taskResult.skipped_materials.length }} 个无需转换的材质
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+            </template>
+
+            <!-- 失败 -->
+            <template v-else>
+              <el-result icon="error" title="修复失败" :sub-title="taskResult.error">
+                <template #extra>
+                  <el-button type="primary" @click="resetAll">重新尝试</el-button>
+                </template>
+              </el-result>
+            </template>
+          </div>
+
+          <div class="action-bar" v-if="taskResult.status === 'success'">
+            <el-button type="success" size="large" @click="currentStep = 3">
+              下一步：下载结果 →
+            </el-button>
+            <el-button size="large" @click="resetAll">处理另一个文件</el-button>
+          </div>
+        </div>
+
+        <!-- Step 3: 下载 -->
+        <div v-show="currentStep === 3" class="step-content">
+          <div class="status-center">
+            <el-result icon="success" title="一切就绪！">
+              <template #sub-title>
+                你的 FBX 文件已修复，包含完整的纹理引用。
+                <br />将下载的 zip 解压后，FBX 和 .fbm 文件夹一起导入 Unity。
+              </template>
+              <template #extra>
+                <el-button type="primary" size="large" @click="downloadResult">
+                  📥 下载 {{ downloadFileName }}
+                </el-button>
+                <el-button size="large" @click="resetAll">
+                  处理另一个文件
+                </el-button>
+              </template>
+            </el-result>
+
+            <el-alert
+              type="info"
+              :closable="false"
+              show-icon
+              style="margin-top: 20px; text-align: left"
+            >
+              <template #title>Unity 导入提示</template>
+              将 zip 解压后，把 <strong>.fbx 文件和 .fbm 文件夹</strong> 一起拖入 Unity Assets。
+              若仍显示白模，选中 FBX → Inspector → Materials → Extract Materials → Apply。
+            </el-alert>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 底部 -->
+    <footer class="app-footer">
+      <p>BlendBridge · Blender FBX 纹理修复工具 · Powered by Blender Python API</p>
+    </footer>
+  </div>
+
+  <!-- Vue 3 + Element Plus CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/element-plus"></script>
+  <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

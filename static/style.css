@@ -1,0 +1,247 @@
+/* ═══════════════════════════════════════════════════════
+   BlendBridge - 自定义样式
+   基于 Element Plus，覆写部分变量
+   ═══════════════════════════════════════════════════════ */
+
+/* ── CSS 变量 ────────────────────────────────────────── */
+:root {
+  --el-color-primary: #0891b2;
+  --el-color-primary-light-3: #22d3ee;
+  --el-color-primary-light-5: #67e8f9;
+  --el-color-primary-light-7: #a5f3fc;
+  --el-color-primary-light-8: #cffafe;
+  --el-color-primary-light-9: #ecfeff;
+  --el-color-primary-dark-2: #0e7490;
+
+  --brand-gradient: linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%);
+  --bg-body: #f0f4f8;
+  --bg-card: #ffffff;
+  --text-secondary: #64748b;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(8, 145, 178, 0.08);
+  --radius-lg: 16px;
+  --radius-md: 10px;
+}
+
+/* ── 全局 ────────────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Noto Sans SC", sans-serif;
+  background: var(--bg-body);
+  min-height: 100vh;
+  color: #334155;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 顶部导航 ────────────────────────────────────────── */
+.app-header {
+  background: var(--brand-gradient);
+  color: #fff;
+  padding: 28px 0 32px;
+  text-align: center;
+}
+
+.header-content {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.brand-icon {
+  font-size: 32px;
+}
+
+.brand-name {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.header-desc {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* ── 主内容区 ────────────────────────────────────────── */
+.app-main {
+  flex: 1;
+  max-width: 760px;
+  margin: -16px auto 0;
+  padding: 0 20px 40px;
+  width: 100%;
+}
+
+.main-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 36px 32px 32px;
+  transition: box-shadow 0.3s ease;
+}
+
+.main-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ── 步骤内容 ────────────────────────────────────────── */
+.step-content {
+  margin-top: 32px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── 上传区域 ────────────────────────────────────────── */
+.upload-zone {
+  width: 100%;
+}
+
+.upload-zone .el-upload-dragger {
+  border: 2px dashed #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 48px 24px;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.upload-zone .el-upload-dragger:hover {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: var(--el-color-primary);
+  margin-bottom: 12px;
+}
+
+.upload-text strong {
+  font-size: 16px;
+  color: #334155;
+}
+
+.upload-text p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+/* ── 操作按钮栏 ──────────────────────────────────────── */
+.action-bar {
+  margin-top: 28px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ── 状态居中 ────────────────────────────────────────── */
+.status-center {
+  text-align: center;
+}
+
+.status-center h3 {
+  margin: 16px 0 8px;
+  font-size: 18px;
+}
+
+.status-center p {
+  color: var(--text-secondary);
+}
+
+/* ── 旋转动画 ────────────────────────────────────────── */
+.spin-icon {
+  color: var(--el-color-primary);
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── 统计网格 ────────────────────────────────────────── */
+.stats-grid {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.stats-grid .el-statistic__head {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stats-grid .el-statistic__number {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
+
+/* ── 详情列表 ────────────────────────────────────────── */
+.detail-list {
+  padding: 8px 0;
+}
+
+/* ── 底部 ────────────────────────────────────────────── */
+.app-footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* ── 响应式 ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .main-card {
+    padding: 24px 16px 20px;
+    border-radius: var(--radius-md);
+  }
+
+  .brand-name {
+    font-size: 22px;
+  }
+
+  .stats-grid {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .upload-zone .el-upload-dragger {
+    padding: 32px 16px;
+  }
+}
+
+/* ── Element Plus 微调 ───────────────────────────────── */
+.el-steps {
+  margin-bottom: 8px;
+}
+
+.el-result__title {
+  font-size: 22px !important;
+}
+
+.el-collapse {
+  width: 100%;
+  margin-top: 16px;
+}

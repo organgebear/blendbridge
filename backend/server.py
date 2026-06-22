@@ -169,7 +169,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/api/upload" and method == "POST":
             return self._upload()
         if path.startswith("/api/download/") and method == "GET":
-            tid = path.split("/")[-1]
+            parts = path.split("/")  # /api/download/<tid>[/blend]
+            tid = parts[3]
+            if len(parts) >= 5 and parts[4] == "blend":
+                return self._download_blend(tid)
             return self._download(tid)
         return None  # 静态文件
 
@@ -281,6 +284,29 @@ class Handler(http.server.BaseHTTPRequestHandler):
         data = Path(zip_path).read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", "application/zip")
+        self.send_header("Content-Length", len(data))
+        self.send_header("Content-Disposition",
+                         f'attachment; filename="{dl_name}"')
+        self._add_cors()
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _download_blend(self, task_id: str):
+        """下载修复后的 .blend 文件"""
+        task = _tasks.get(task_id)
+        if not task:
+            return self._json({"error": "任务不存在"}, 404)
+        if task["status"] != "success":
+            return self._json({"error": "任务未成功完成"}, 400)
+
+        blend_path = task.get("export", {}).get("blend_path", "")
+        if not blend_path or not os.path.isfile(blend_path):
+            return self._json({"error": "修复后的 .blend 不存在"}, 404)
+
+        dl_name = Path(task["filename"]).stem + "_fixed.blend"
+        data = Path(blend_path).read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Length", len(data))
         self.send_header("Content-Disposition",
                          f'attachment; filename="{dl_name}"')

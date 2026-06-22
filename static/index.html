@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlendBridge - Blender FBX 纹理修复工具</title>
-  <!-- Element Plus -->
   <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
-  <!-- Element Plus Icons -->
-  <script src="https://unpkg.com/@element-plus/icons-vue"></script>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -18,7 +15,7 @@
         <div class="brand">
           <span class="brand-icon">🌉</span>
           <span class="brand-name">BlendBridge</span>
-          <el-tag size="small" type="info" effect="plain" round>v1.0</el-tag>
+          <el-tag size="small" type="info" effect="plain" round>v1.1</el-tag>
         </div>
         <div class="header-desc">一键修复 Blender FBX 导出纹理丢失问题</div>
       </div>
@@ -36,6 +33,53 @@
 
         <!-- Step 0: 上传区域 -->
         <div v-show="currentStep === 0" class="step-content">
+          <!-- 工作原理 -->
+          <div class="how-it-works">
+            <h3 class="hiw-title">🔧 BlendBridge 会修改什么？</h3>
+            <div class="hiw-grid">
+              <div class="hiw-card">
+                <div class="hiw-card-icon">📦</div>
+                <div class="hiw-card-body">
+                  <strong>纹理解包</strong>
+                  <p>将嵌入在 .blend 内部的打包纹理，提取为独立 PNG 文件</p>
+                  <div class="hiw-before-after">
+                    <span class="hiw-before">❌ filepath 为空</span>
+                    <span class="hiw-arrow">→</span>
+                    <span class="hiw-after">✅ textures/Image_0.png</span>
+                  </div>
+                </div>
+              </div>
+              <div class="hiw-card">
+                <div class="hiw-card-icon">⚡</div>
+                <div class="hiw-card-body">
+                  <strong>材质转换</strong>
+                  <p>将 Emission（自发光）着色器改为 Principled BSDF（PBR）</p>
+                  <div class="hiw-before-after">
+                    <span class="hiw-before">❌ Emission 着色器</span>
+                    <span class="hiw-arrow">→</span>
+                    <span class="hiw-after">✅ Principled BSDF</span>
+                  </div>
+                </div>
+              </div>
+              <div class="hiw-card">
+                <div class="hiw-card-icon">📤</div>
+                <div class="hiw-card-body">
+                  <strong>FBX 导出</strong>
+                  <p>重新导出 FBX，纹理路径指向同名 .fbm 文件夹，Unity 直接识别</p>
+                  <div class="hiw-before-after">
+                    <span class="hiw-before">❌ FBX 无纹理引用</span>
+                    <span class="hiw-arrow">→</span>
+                    <span class="hiw-after">✅ FBX + .fbm 配套</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <el-alert type="info" :closable="false" show-icon style="margin-top: 16px">
+              <template #title>会修改原文件吗？</template>
+              <strong>不会。</strong>上传的文件在临时目录处理，原始文件不受影响。修复后的 .blend 会作为 <em>_fixed.blend</em> 提供下载。
+            </el-alert>
+          </div>
+
           <el-upload
             ref="uploadRef"
             class="upload-zone"
@@ -72,17 +116,25 @@
         <div v-show="currentStep === 1" class="step-content">
           <div class="status-center">
             <el-icon class="spin-icon" :size="40"><loading /></el-icon>
-            <h3>正在诊断模型...</h3>
-            <p>检查纹理打包状态 & 材质类型</p>
+            <h3>正在处理模型...</h3>
+            <p>Blender 后台执行：纹理解包 → 材质转换 → FBX 导出</p>
           </div>
         </div>
 
         <!-- Step 2: 修复结果 -->
         <div v-show="currentStep === 2" class="step-content">
           <div class="result-summary">
-            <!-- 成功 -->
             <template v-if="taskResult.status === 'success'">
-              <el-result icon="success" title="修复完成！" sub-title="纹理已解包，材质已转换为 PBR">
+              <el-result icon="success" title="修复完成！">
+                <template #sub-title>
+                  <div v-if="taskResult.unpacked_textures?.length">
+                    已解包 {{ taskResult.unpacked_textures.length }} 张纹理，
+                    转换 {{ taskResult.converted_materials?.length || 0 }} 个材质
+                  </div>
+                  <div v-else>
+                    该模型无需解包纹理，已直接转换材质并导出
+                  </div>
+                </template>
                 <template #extra>
                   <div class="stats-grid">
                     <el-statistic title="解包纹理" :value="taskResult.unpacked_textures?.length || 0">
@@ -92,13 +144,14 @@
                       <template #suffix>个</template>
                     </el-statistic>
                     <el-statistic title="FBX 大小" :value="formatSize(taskResult.export?.fbx_size || 0)" />
+                    <el-statistic title="修复 .blend" :value="formatSize(taskResult.export?.blend_size || 0)" />
                   </div>
                 </template>
               </el-result>
 
               <!-- 详情 -->
-              <el-collapse v-if="taskResult.unpacked_textures?.length">
-                <el-collapse-item title="解包纹理详情" name="textures">
+              <el-collapse v-if="taskResult.unpacked_textures?.length || taskResult.converted_materials?.length">
+                <el-collapse-item title="纹理解包详情" name="textures" v-if="taskResult.unpacked_textures?.length">
                   <div class="detail-list">
                     <el-tag
                       v-for="tex in taskResult.unpacked_textures"
@@ -111,7 +164,7 @@
                     </el-tag>
                   </div>
                 </el-collapse-item>
-                <el-collapse-item title="转换材质详情" name="materials">
+                <el-collapse-item title="材质转换详情" name="materials" v-if="taskResult.converted_materials?.length">
                   <div class="detail-list">
                     <el-tag
                       v-for="mat in taskResult.converted_materials"
@@ -120,7 +173,7 @@
                       effect="plain"
                       style="margin: 4px"
                     >
-                      ⚡→🎨 {{ mat }}
+                      ⚡ Emission → 🎨 Principled BSDF &nbsp; {{ mat }}
                     </el-tag>
                   </div>
                   <div v-if="taskResult.skipped_materials?.length" style="margin-top: 8px; color: #909399">
@@ -130,7 +183,6 @@
               </el-collapse>
             </template>
 
-            <!-- 失败 -->
             <template v-else>
               <el-result icon="error" title="修复失败" :sub-title="taskResult.error">
                 <template #extra>
@@ -153,18 +205,31 @@
           <div class="status-center">
             <el-result icon="success" title="一切就绪！">
               <template #sub-title>
-                你的 FBX 文件已修复，包含完整的纹理引用。
-                <br />将下载的 zip 解压后，FBX 和 .fbm 文件夹一起导入 Unity。
+                包含修复后的 FBX、贴图和 .blend 源文件
               </template>
               <template #extra>
-                <el-button type="primary" size="large" @click="downloadResult">
-                  📥 下载 {{ downloadFileName }}
-                </el-button>
-                <el-button size="large" @click="resetAll">
-                  处理另一个文件
-                </el-button>
+                <div class="download-buttons">
+                  <el-button type="primary" size="large" @click="downloadResult">
+                    📥 下载 {{ downloadFileName }}（全部）
+                  </el-button>
+                  <el-button size="large" @click="downloadBlend">
+                    🎨 下载 {{ blendFileName }}（修复后 .blend）
+                  </el-button>
+                  <el-button size="large" @click="resetAll">
+                    处理另一个文件
+                  </el-button>
+                </div>
               </template>
             </el-result>
+
+            <div class="download-contents">
+              <h4>{{ downloadFileName }} 包含：</h4>
+              <div class="file-tree">
+                <div class="ft-item"><span class="ft-icon">📄</span> {{ baseName }}.fbx <span class="ft-note">修复后的模型</span></div>
+                <div class="ft-item"><span class="ft-icon">📁</span> {{ baseName }}.fbm/ <span class="ft-note">贴图文件夹</span></div>
+                <div class="ft-item"><span class="ft-icon">🎨</span> {{ baseName }}_fixed.blend <span class="ft-note">修复后的源文件</span></div>
+              </div>
+            </div>
 
             <el-alert
               type="info"
@@ -176,18 +241,26 @@
               将 zip 解压后，把 <strong>.fbx 文件和 .fbm 文件夹</strong> 一起拖入 Unity Assets。
               若仍显示白模，选中 FBX → Inspector → Materials → Extract Materials → Apply。
             </el-alert>
+
+            <el-alert
+              type="success"
+              :closable="false"
+              show-icon
+              style="margin-top: 12px; text-align: left"
+            >
+              <template #title>继续修改</template>
+              下载 <strong>修复后的 .blend</strong> 可在 Blender 中继续编辑，纹理路径已修正、材质已转为 PBR。
+            </el-alert>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- 底部 -->
     <footer class="app-footer">
-      <p>BlendBridge · Blender FBX 纹理修复工具 · Powered by Blender Python API</p>
+      <p>BlendBridge · Blender FBX 纹理修复工具 · 纯 Python 标准库 · 零依赖</p>
     </footer>
   </div>
 
-  <!-- Vue 3 + Element Plus CDN -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/element-plus"></script>
   <script src="https://unpkg.com/@element-plus/icons-vue"></script>

@@ -7,40 +7,44 @@ const { createApp, ref, computed } = Vue;
 const app = createApp({
   setup() {
     // ── 状态 ──────────────────────────────────────────
-    const uploadFile = ref(null);        // 当前上传的文件
-    const uploadRef = ref(null);         // el-upload 引用
-    const currentStep = ref(0);          // 当前步骤 0-3
-    const fixing = ref(false);           // 是否正在修复
-    const taskResult = ref({});           // 后端返回结果
-    const taskId = ref("");              // 任务 ID
+    const uploadFile = ref(null);
+    const uploadRef = ref(null);
+    const currentStep = ref(0);
+    const fixing = ref(false);
+    const taskResult = ref({});
+    const taskId = ref("");
 
     // ── 计算属性 ──────────────────────────────────────
+    const baseName = computed(() => {
+      if (!uploadFile.value) return "model";
+      return uploadFile.value.name.replace(/\.blend$/i, "");
+    });
+
     const downloadFileName = computed(() => {
-      if (!uploadFile.value) return "result.zip";
-      const name = uploadFile.value.name.replace(/\.blend$/i, "");
-      return `${name}_fixed.zip`;
+      return `${baseName.value}_fixed.zip`;
+    });
+
+    const blendFileName = computed(() => {
+      return `${baseName.value}_fixed.blend`;
     });
 
     // ── 方法 ──────────────────────────────────────────
 
-    /** 文件选择变化 */
     const handleFileChange = (file) => {
       uploadFile.value = file.raw;
     };
 
-    /** 移除文件 */
     const handleFileRemove = () => {
       uploadFile.value = null;
     };
 
-    /** 格式化文件大小 */
     const formatSize = (bytes) => {
+      if (!bytes || bytes === 0) return "—";
       if (bytes < 1024) return `${bytes} B`;
       if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
       return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
     };
 
-    /** 开始修复流程 */
     const startFix = async () => {
       if (!uploadFile.value) return;
 
@@ -73,7 +77,7 @@ const app = createApp({
       } catch (err) {
         taskResult.value = {
           status: "error",
-          error: `网络错误: ${err.message}`,
+          error: "网络错误: " + err.message,
         };
         currentStep.value = 2;
       } finally {
@@ -81,19 +85,28 @@ const app = createApp({
       }
     };
 
-    /** 下载修复结果 */
-    const downloadResult = () => {
-      if (!taskId.value) return;
-
+    const _triggerDownload = (url, filename) => {
       const link = document.createElement("a");
-      link.href = `/api/download/${taskId.value}`;
-      link.download = downloadFileName.value;
+      link.href = url;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     };
 
-    /** 全部重置 */
+    const downloadResult = () => {
+      if (!taskId.value) return;
+      _triggerDownload(`/api/download/${taskId.value}`, downloadFileName.value);
+    };
+
+    const downloadBlend = () => {
+      if (!taskId.value) return;
+      _triggerDownload(
+        `/api/download/${taskId.value}/blend`,
+        blendFileName.value
+      );
+    };
+
     const resetAll = () => {
       uploadFile.value = null;
       uploadRef.value?.clearFiles();
@@ -109,17 +122,20 @@ const app = createApp({
       currentStep,
       fixing,
       taskResult,
+      taskId,
+      baseName,
       downloadFileName,
+      blendFileName,
       handleFileChange,
       handleFileRemove,
       startFix,
       downloadResult,
+      downloadBlend,
       resetAll,
       formatSize,
     };
   },
 });
 
-// 注册 Element Plus 图标
 app.use(ElementPlus);
 app.mount("#app");

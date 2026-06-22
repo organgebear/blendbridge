@@ -245,3 +245,154 @@ body {
   width: 100%;
   margin-top: 16px;
 }
+
+/* ── 工作原理 ────────────────────────────────────────── */
+.how-it-works {
+  width: 100%;
+  margin-bottom: 28px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid #e2e8f0;
+}
+
+.hiw-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #334155;
+}
+
+.hiw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.hiw-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: box-shadow 0.2s;
+}
+
+.hiw-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.hiw-card-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: center;
+}
+
+.hiw-card-body strong {
+  display: block;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.hiw-card-body p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.hiw-before-after {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.hiw-before {
+  color: #ef4444;
+  background: #fef2f2;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.hiw-arrow {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.hiw-after {
+  color: #059669;
+  background: #ecfdf5;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ── 下载按钮组 ──────────────────────────────────────── */
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ── 下载内容预览 ────────────────────────────────────── */
+.download-contents {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.download-contents h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.file-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ft-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #334155;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.ft-icon {
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ft-note {
+  color: #94a3b8;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ── 响应式 ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .hiw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .download-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+

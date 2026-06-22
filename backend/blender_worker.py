@@ -113,8 +113,8 @@ def convert_materials():
     return converted, skipped
 
 
-def export_fbx(output_dir):
-    """导出 FBX 并打包为 zip"""
+def export_fbx(output_dir, blend_path):
+    """导出 FBX 并打包为 zip（同时包含修复后的 .blend）"""
     # 从 .blend 文件名提取基础名（兼容 Windows 反斜杠）
     blend_filepath = bpy.data.filepath.replace("\\", "/")
     blend_name = os.path.splitext(os.path.basename(blend_filepath))[0]
@@ -122,9 +122,13 @@ def export_fbx(output_dir):
         blend_name = "output"
 
     fbx_path = os.path.join(output_dir, blend_name + ".fbx")
+    fixed_blend_path = os.path.join(output_dir, blend_name + "_fixed.blend")
 
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
+
+    # 保存修复后的 .blend 副本
+    bpy.ops.wm.save_as_mainfile(filepath=_blender_path(fixed_blend_path), copy=True)
 
     # 选择要导出的对象（Mesh + Armature）
     bpy.ops.object.select_all(action="DESELECT")
@@ -149,7 +153,7 @@ def export_fbx(output_dir):
         bake_anim=False,
     )
 
-    # 打包 FBX + .fbm 为 zip
+    # 打包 FBX + .fbm + 修复后 .blend 为 zip
     fbm_dir = os.path.splitext(fbx_path)[0] + ".fbm"
     zip_path = os.path.join(output_dir, "result.zip")
 
@@ -166,12 +170,17 @@ def export_fbx(output_dir):
                     )
                     # zip 内部统一使用正斜杠
                     zf.write(file_path, arcname.replace("\\", "/"))
+        # 包含修复后的 .blend
+        if os.path.isfile(fixed_blend_path):
+            zf.write(fixed_blend_path, os.path.basename(fixed_blend_path))
 
     return {
         "fbx_path": fbx_path,
         "zip_path": zip_path,
+        "blend_path": fixed_blend_path,
         "fbm_exists": os.path.isdir(fbm_dir),
         "fbx_size": os.path.getsize(fbx_path),
+        "blend_size": os.path.getsize(fixed_blend_path) if os.path.isfile(fixed_blend_path) else 0,
         "selected_objects": selected_count,
     }
 
@@ -202,11 +211,11 @@ def main():
         result["converted_materials"] = converted
         result["skipped_materials"] = skipped
 
-        # Step 3: 保存修改后的 .blend
+        # Step 3: 保存修改后的 .blend（覆盖原文件 + 保存副本到输出目录）
         bpy.ops.wm.save_mainfile()
 
-        # Step 4: 导出 FBX
-        result["export"] = export_fbx(output_dir)
+        # Step 4: 导出 FBX（同时保存修复后 .blend 副本）
+        result["export"] = export_fbx(output_dir, bpy.data.filepath)
 
     except Exception as exc:
         result["success"] = False
